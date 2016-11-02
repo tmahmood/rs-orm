@@ -23,12 +23,12 @@ impl Database {
         }
     }
 
-    pub fn insert(&self, sql_orig:&'static str, data: &[&ToSql]) -> i32 {
+    pub fn insert(&self, sql_orig:&'static str, data: Vec<String>) -> i32 {
         // in case of insert we can get the last inserted id
         // by adding "returning id" at the end
         let sql = &vec![sql_orig, "returning id"].join(" ");
         let stmt = self.conn.prepare(sql).unwrap();
-        return match stmt.query(data) {
+        return match stmt.query(Slice(data)) {
             Ok(rows) => {
                 let row = rows.iter().next().unwrap();
                 row.get(0)

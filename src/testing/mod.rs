@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use lib::storageprovider::{StorageProvider,FieldValue};
+use lib::storageprovider::{StorageProvider};
 use lib::pgsql::Database;
 use ::dotenv::dotenv;
 use ::std::env;
@@ -19,16 +19,16 @@ fn test_storage_provider() {
     // inserting data
     // ----------------------------------------------
     let mut survey = HashMap::new();
-    survey.insert("title",      FieldValue::StringField("Oct 2016 Survey"));
-    survey.insert("duration",   FieldValue::IntegerField(8));
-    survey.insert("start_date", FieldValue::StringField("2016-10-21"));
-    survey.insert("active",     FieldValue::BoolField(true));
+    survey.insert("title", "Oct 2016 Survey");
+    survey.insert("duration", "8");
+    survey.insert("start_date", "2016-10-21");
+    survey.insert("active", "1");
     // #
     storage.create("surveys", &mut survey);
     // finding data
     // ----------------------------------------------
     let id = survey.get("id").unwrap();
-    println!("{:?}", id);
+    println!("{}", id);
     //let survey = storage.find_by_id("surveys", id);
     // #
 }
