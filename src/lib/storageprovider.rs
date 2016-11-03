@@ -20,7 +20,7 @@ impl StorageProvider {
         }
         let mut sql = format!("insert into {} ({}) values ({})",
                                 table, keys.join(", "), vars.join(", "));
-        self.database.insert(&sql, vals);
+        self.database.insert(&sql, &vals);
         data.insert("id", "10");
     }
 
