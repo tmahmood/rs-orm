@@ -15,3 +15,5 @@ pub fn read_file(file_name:&'static str) -> String {
     };
     s
 }
+
+

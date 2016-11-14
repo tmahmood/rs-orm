@@ -1,8 +1,15 @@
-use lib::pgsql::Database;
+use lib::pgsql::{Database, ColumnType, DatabaseError};
 use std::collections::HashMap;
 
+pub type FieldType = ColumnType;
 pub struct StorageProvider {
     database: Database,
+}
+
+pub trait DataTraits <T>{
+    fn insert_sql(&self)->String;
+    fn values<'a>(&'a self)-> Vec<&'a ColumnType>;
+    fn set_id(&mut self,i32);
 }
 
 impl StorageProvider {
@@ -10,23 +17,20 @@ impl StorageProvider {
         StorageProvider{ database: database }
     }
 
-    pub fn create(&self, table:&str, data:&mut HashMap<&'static str, &str>){
-        // join up columns
-        let keys:Vec<String> = data.keys().map(|&x| String::from(x)).collect();
-        let vals = data.values().map(|&x| &x).collect();
-        let mut vars = vec![];
-        for i in 0..data.len() {
-            vars.push(format!("${}", i));
-        }
-        let mut sql = format!("insert into {} ({}) values ({})",
-                                table, keys.join(", "), vars.join(", "));
-        self.database.insert(&sql, &vals);
-        data.insert("id", "10");
+    pub fn create<T:DataTraits<T>>(&self, table:T) -> T {
+        let mut sql;
+        let mut vals;
+        sql = table.insert_sql();
+        vals = table.values();
+        let id = self.database.insert(&sql, &vals);
+        table.set_id(id);
+        table
     }
 
-    pub fn clear(&self, table:&str){
+    pub fn clear(&self, table:&str) -> Result<u64, DatabaseError> {
         let sql = format!("truncate {} cascade", table);
-        println!("{}", sql);
+        let m = self.database.statement(&sql);
+        m.execute(&[])
     }
 
     pub fn find_by_id(&self, table:&str, id:i32) -> HashMap<&'static str, &str> {

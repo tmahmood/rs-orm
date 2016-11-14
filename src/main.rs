@@ -1,6 +1,7 @@
 extern crate postgres;
 extern crate rand;
 extern crate dotenv;
+extern crate chrono;
 
 use dotenv::dotenv;
 use std::env;

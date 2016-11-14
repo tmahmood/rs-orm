@@ -7,8 +7,10 @@ authors = ["Tarin Mahmood <mahmood.tarin@gmail.com>"]
 router="*"
 rustc-serialize="*"
 rand="*"
-postgres="*"
+postgres={ version="*", features=["with-chrono"] }
 dotenv = "*"
+chrono="*"
 
 [dependencies.iron]
 version="*"
+

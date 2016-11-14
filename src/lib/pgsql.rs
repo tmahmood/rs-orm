@@ -5,21 +5,16 @@ use postgres::rows::{Rows, Row};
 use postgres::stmt::Statement;
 use lib::read_file;
 use std::collections::HashMap;
+use postgres::error::Error;
 
-macro_rules! make_slice {
-    (
-        $(
-            Vec[ $( $y:expr ),* ]
-        );*
-    ) => {
-        &[ $($( $y ),*),* ]
-    }
-}
 
+pub type DatabaseError = Error;
+pub type ColumnType = ToSql;
 pub struct Database {
     pub conn: Connection,
 }
 
+// Trait to fill up data from given row.
 pub trait FillStruct <T>{
     fn fill(row:Row)->T;
     fn empty()->T;
@@ -33,28 +28,33 @@ impl Database {
         }
     }
 
-    pub fn insert(&self, sql_orig:&'static str, data: &Vec<String>) -> i32 {
+    pub fn insert(&self, sql_orig:&str, data: &[&ColumnType]) -> i32 {
         // in case of insert we can get the last inserted id
         // by adding "returning id" at the end
         let sql = &vec![sql_orig, "returning id"].join(" ");
         let stmt = self.conn.prepare(sql).unwrap();
-        return match stmt.query(&data) {
+        return match stmt.query(data) {
             Ok(rows) => {
                 let row = rows.iter().next().unwrap();
                 row.get(0)
             },
-            Err(_) => 0
+            Err(e) => {
+                println!("{:?}", e);
+                0
+            }
         };
     }
 
-    pub fn statement(&self, sql:&'static str) -> Statement {
+    pub fn statement(&self, sql:&str) -> Statement {
         return match self.conn.prepare(sql) {
             Ok(stmt) => stmt,
             Err(_) => panic!("Failed to prepare SQL")
         };
     }
 
-    pub fn get_row_object<T:FillStruct<T>>(&self, sql:&'static str, data: &[&ToSql]) -> T{
+    // convert row to the given struct
+    pub fn get_row_object<T:FillStruct<T>>(&self, sql:&'static str,
+                                           data: &[&ToSql]) -> T{
         let stmt = self.statement(sql);
         return match stmt.query(data) {
             Ok(rows) => {
