@@ -7,6 +7,7 @@ use dotenv::dotenv;
 use std::env;
 
 mod app;
+#[macro_use]
 mod lib;
 
 #[cfg( test )]

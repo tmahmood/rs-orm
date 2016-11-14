@@ -1,12 +1,8 @@
 use postgres::{Connection, TlsMode};
-use postgres::types::ToSql;
-use postgres::types::FromSql;
+use postgres::types::{ToSql,FromSql};
 use postgres::rows::{Rows, Row};
 use postgres::stmt::Statement;
-use lib::read_file;
-use std::collections::HashMap;
 use postgres::error::Error;
-
 
 pub type DatabaseError = Error;
 pub type ColumnType = ToSql;
