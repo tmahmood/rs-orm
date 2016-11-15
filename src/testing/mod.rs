@@ -5,13 +5,8 @@ use ::dotenv::dotenv;
 use ::std::env;
 use ::chrono::Local;
 
-make_model!(
-struct Survey {
-    title: String,
-    duration: i32,
-    start_date: i64,
-    active: bool
-}, "surveys", "id");
+
+use app::models::{Survey};
 
 #[test]
 fn test_storage_provider() {

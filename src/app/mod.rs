@@ -1,2 +1,2 @@
-mod phone;
-
+pub mod phone;
+pub mod models;

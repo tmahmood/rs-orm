@@ -6,9 +6,9 @@ extern crate chrono;
 use dotenv::dotenv;
 use std::env;
 
-mod app;
 #[macro_use]
 mod lib;
+mod app;
 
 #[cfg( test )]
 mod testing;
