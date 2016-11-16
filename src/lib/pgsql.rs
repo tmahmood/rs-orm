@@ -41,6 +41,16 @@ impl Database {
         };
     }
 
+    pub fn clear(&self, table:&str) -> Result<u64, Error>  {
+        let sql = format!("ALTER SEQUENCE {}_id_seq RESTART WITH 1", table);
+        let m = self.statement(&sql);
+        let state = m.execute(&[]);
+
+        let sql = format!("truncate {} cascade", table);
+        let m = self.statement(&sql);
+        m.execute(&[])
+    }
+
     pub fn statement(&self, sql:&str) -> Statement {
         return match self.conn.prepare(sql) {
             Ok(stmt) => stmt,
@@ -49,8 +59,9 @@ impl Database {
     }
 
     // convert row to the given struct
-    pub fn get_row_object<T:FillStruct<T>>(&self, sql:&'static str,
-                                           data: &[&ToSql]) -> T{
+    pub fn get_row_object<T:FillStruct<T>>(&self,
+                                           sql:&'static str,
+                                           data: &[&ToSql]) -> T {
         let stmt = self.statement(sql);
         return match stmt.query(data) {
             Ok(rows) => {

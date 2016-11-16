@@ -8,9 +8,8 @@ pub struct StorageProvider {
 }
 
 pub trait DataTraits <T>{
-    fn insert_sql(&self)->String;
-    fn values<'a>(&'a self)-> Vec<&'a ColumnType>;
-    fn set_id(&mut self,i32);
+    fn insert(&mut self, &StorageProvider);
+    fn name() -> &'static str;
 }
 
 impl StorageProvider {
@@ -18,51 +17,42 @@ impl StorageProvider {
         StorageProvider{ database: database }
     }
 
-    pub fn create<T:DataTraits<T>>(&self, table:&mut T) -> i32 {
-        let sql = table.insert_sql();
-        let vals = table.values();
-        self.database.insert(&sql, &vals)
-    }
-
     pub fn insert<'a>(&self, sql:&str, data:&Vec<&'a ColumnType>) -> i32 {
         self.database.insert(&sql, data)
     }
 
     pub fn clear(&self, table:&str) -> Result<u64, DatabaseError> {
-        let sql = format!("truncate {} cascade", table);
-        let m = self.database.statement(&sql);
-        m.execute(&[])
+        self.database.clear(table)
     }
 }
 
 // Generates standard model struct and implements
 // traits required to work with it
 macro_rules! model {
-    (struct $name:ident {$($fname:ident : $ftype:ty),*}, $x:expr) => {
+    (struct $name:ident {$($fname:ident : $ftype:ty),*}, $table:expr) => {
         #[derive(Debug)]
         pub struct $name {
             pub id:i32,
             $(pub $fname : $ftype),*
         }
-
         impl DataTraits<$name> for $name {
-            fn insert(&self) -> String {
-                 let l = vec![$(stringify!($fname)), *];
+            fn insert(&mut self, storage:&StorageProvider) {
+                 let columns = vec![$(stringify!($fname)), *];
                  let mut i = 0;
-                 let x:Vec<String> = l.iter().map(|&_| {
-                        i += 1;
-                        format!("${}", i)
-                 }).collect();
-                 format!("insert into {} ({}) values({})", $x,
-                         l.join(", "), x.join(","))
+                 // can we clean this up a bit?
+                 let placeholders:Vec<String> = columns.iter()
+                                                       .map(|&_| { i += 1; format!("${}", i) })
+                                                       .collect();
+                 let sql = format!("insert into {} ({}) values({})", $table, columns.join(", "),
+                                                                     placeholders.join(","));
+                 // we need some error handling here and return status
+                 let id = storage.insert(&sql, &vec![ $(&self.$fname),* ]);
+                 // assign id, now we know we
+                 // haved saved the survey
+                 self.id = id;
             }
-
-            fn values<'a>(&'a self) -> Vec<&'a FieldType> {
-                vec![ $(&self.$fname),* ]
-            }
-
-            fn set_id(&mut self, id:i32) {
-                self.id = id
+            fn name() -> &'static str {
+                $table
             }
         }
     }
