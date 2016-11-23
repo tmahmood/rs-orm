@@ -1,15 +1,19 @@
-#[macro_use]
-
-use lib::pgsql::{Database, ColumnType, DatabaseError};
+use lib::pgsql::{Database, ColumnType, DatabaseError, DataRow, DataRows};
 
 pub type FieldType = ColumnType;
+pub type Rows<'a> = DataRows<'a>;
+pub type Row<'a> = DataRow<'a>;
 pub struct StorageProvider {
     database: Database,
 }
 
 pub trait DataTraits <T>{
-    fn insert(&mut self, &StorageProvider);
     fn name() -> &'static str;
+    fn columns() -> Vec<String>;
+    fn data(&self) -> Vec<&ColumnType>;
+    fn set_id(&mut self, i32);
+    fn columns_as_csv() -> String;
+    fn fill(row:&Row) -> T;
 }
 
 impl StorageProvider {
@@ -17,12 +21,30 @@ impl StorageProvider {
         StorageProvider{ database: database }
     }
 
-    pub fn insert<'a>(&self, sql:&str, data:&Vec<&'a ColumnType>) -> i32 {
-        self.database.insert(&sql, data)
+    pub fn insert<T:DataTraits<T>>(&self, obj:&mut T) {
+        let id;
+        {
+            let v = obj.data();
+            id = self.database.insert(T::name(), T::columns_as_csv(), &v);
+        }
+        obj.set_id(id);
     }
 
     pub fn clear(&self, table:&str) -> Result<u64, DatabaseError> {
         self.database.clear(table)
+    }
+
+    pub fn delete(&self, name:&str, id:i32) -> Result<u64, DatabaseError> {
+        self.database.delete(name, id)
+    }
+
+    pub fn find_all<T:DataTraits<T>>(&self, name:&str, limit:usize) -> Vec<T> {
+        let data_rows = self.database.select_all(name, limit).unwrap();
+        let mut list:Vec<T> = Vec::new();
+        for row in data_rows {
+            list.push(T::fill(&row));
+        }
+        list
     }
 }
 
@@ -35,22 +57,32 @@ macro_rules! model {
             pub id:i32,
             $(pub $fname : $ftype),*
         }
+
         impl DataTraits<$name> for $name {
-            fn insert(&mut self, storage:&StorageProvider) {
-                 let columns = vec![$(stringify!($fname)), *];
-                 let mut i = 0;
-                 // can we clean this up a bit?
-                 let placeholders:Vec<String> = columns.iter()
-                                                       .map(|&_| { i += 1; format!("${}", i) })
-                                                       .collect();
-                 let sql = format!("insert into {} ({}) values({})", $table, columns.join(", "),
-                                                                     placeholders.join(","));
-                 // we need some error handling here and return status
-                 let id = storage.insert(&sql, &vec![ $(&self.$fname),* ]);
-                 // assign id, now we know we
-                 // haved saved the survey
-                 self.id = id;
+            fn fill(row:&Row) -> $name {
+                $name {
+                        id: row.get("id"),
+                        $($fname: row.get(stringify!($fname))),*
+                    }
             }
+
+            fn columns() -> Vec<String> {
+                vec![$(String::from(stringify!($fname))), *]
+            }
+
+            fn columns_as_csv() -> String {
+                let t = vec![$(String::from(stringify!($fname))), *];
+                t.join(", ")
+            }
+
+            fn data(&self) -> Vec<&FieldType> {
+                vec![ $(&self.$fname), *]
+            }
+
+            fn set_id(&mut self, id:i32){
+                self.id = id;
+            }
+
             fn name() -> &'static str {
                 $table
             }

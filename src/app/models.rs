@@ -1,4 +1,4 @@
-use lib::storageprovider::{StorageProvider, FieldType, DataTraits};
+use lib::storageprovider::{StorageProvider, FieldType, DataTraits, Row};
 
 model!( struct Survey {
                     title: String,

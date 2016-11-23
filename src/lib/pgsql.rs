@@ -6,17 +6,14 @@ use postgres::error::Error;
 
 pub type DatabaseError = Error;
 pub type ColumnType = ToSql;
+pub type DataRows<'a> = Rows<'a>;
+pub type DataRow<'a> = Row<'a>;
 pub struct Database {
     pub conn: Connection,
 }
 
-// Trait to fill up data from given row.
-pub trait FillStruct <T>{
-    fn fill(row:Row)->T;
-    fn empty()->T;
-}
-
 impl Database {
+
     pub fn new(dsn:&str) -> Database {
         match Connection::connect(dsn, TlsMode::None) {
             Ok(conn) => Database{conn: conn},
@@ -24,21 +21,54 @@ impl Database {
         }
     }
 
-    pub fn insert(&self, sql_orig:&str, data: &[&ColumnType]) -> i32 {
-        // in case of insert we can get the last inserted id
-        // by adding "returning id" at the end
-        let sql = &vec![sql_orig, "returning id"].join(" ");
-        let stmt = self.conn.prepare(sql).unwrap();
+    pub fn insert(&self, table:&str, cols:String, data: &[&ColumnType]) -> i32{
+        let mut i = 0;
+        // postgres driver uses $1..$n to bind variables,
+        // we make the binding string here, there must be
+        // a better way to do it?
+        let placeholders:Vec<String> = data.iter()
+            .map(|&_| { i += 1; format!("${}", i) })
+            .collect();
+        // build the query string
+        let sql = format!("insert into {} ({}) values({}) returning id",
+                table, cols, placeholders.join(", "));
+        // prepare statement
+        let stmt = self.conn.prepare(&sql).unwrap();
+        // execute query
         return match stmt.query(data) {
             Ok(rows) => {
                 let row = rows.iter().next().unwrap();
                 row.get(0)
-            },
-            Err(e) => {
+            }, Err(e) => {
                 println!("{:?}", e);
                 0
             }
         };
+    }
+
+    pub fn select_all<T>(&self, obj:T, limit:usize) -> Option<Vec<T>> {
+        let mut sql;
+        if limit != 0 {
+            sql = format!("select * from {} limit by {}", table, limit);
+        } else {
+            sql = format!("select * from {}", table);
+        }
+        let mut result:Vec<Row> = Vec::new();
+        // prepare statement
+        let stmt = self.conn.prepare(&sql).unwrap();
+        println!("{:?}", stmt);
+        // execute query
+        let rows:Rows = stmt.query(&[]).unwrap();
+        for row in rows.iter() {
+            //result.push(row);
+        }
+        Some(result)
+    }
+
+    pub fn delete(&self, table:&str, id:i32) -> Result<u64, Error> {
+        let sql = format!("delete from {} where id = $1", table);
+        let statement = self.statement(&sql);
+        statement.execute(&[&id])
     }
 
     pub fn clear(&self, table:&str) -> Result<u64, Error>  {
@@ -57,24 +87,12 @@ impl Database {
             Err(_) => panic!("Failed to prepare SQL")
         };
     }
-
-    // convert row to the given struct
-    pub fn get_row_object<T:FillStruct<T>>(&self,
-                                           sql:&'static str,
-                                           data: &[&ToSql]) -> T {
-        let stmt = self.statement(sql);
-        return match stmt.query(data) {
-            Ok(rows) => {
-                if rows.len() == 0 {
-                    T::empty()
-                } else {
-                    let row = rows.iter().next().unwrap();
-                    T::fill(row)
-                }
-            },
-            Err(_) => T::empty()
-        };
-    }
-
 }
+
+//
+// tables: t1, t2
+// columns: t1.*, t2.name, t3.cat
+// join t3 t1.id = t3.t1_id
+// where:
+
 
