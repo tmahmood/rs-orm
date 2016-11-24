@@ -7,7 +7,7 @@ pub struct StorageProvider {
     database: Database,
 }
 
-pub trait DataTraits <T>{
+pub trait DataTraits<T> {
     fn name() -> &'static str;
     fn columns() -> Vec<String>;
     fn data(&self) -> Vec<&ColumnType>;
@@ -38,10 +38,10 @@ impl StorageProvider {
         self.database.delete(name, id)
     }
 
-    pub fn find_all<T:DataTraits<T>>(&self, name:&str, limit:usize) -> Vec<T> {
-        let data_rows = self.database.select_all(name, limit).unwrap();
+    pub fn find_all<'a, T:DataTraits<T>>(&self, name:&str, limit:usize) -> Vec<T> {
+        let mut data_rows:DataRows = self.database.select_all(name, limit);
         let mut list:Vec<T> = Vec::new();
-        for row in data_rows {
+        for row in data_rows.iter() {
             list.push(T::fill(&row));
         }
         list

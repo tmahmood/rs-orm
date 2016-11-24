@@ -28,19 +28,20 @@ fn test_storage_provider() {
     // survey.insert(&storage);
     storage.insert(&mut survey);
     assert!(survey.id == 1);
+    let mut ids = Vec::new();
     // add lot more
-    for i in 1..10 {
+    for i in 1..11 {
         survey.title = format!("Test Survey {}", i);
         survey.duration = 6;
         survey.active = Local::now().timestamp() % 2 == 0;
         storage.insert(&mut survey);
         assert!(survey.id == i + 1);
-        let cnt = storage.delete(Survey::name(), survey.id).expect("Failed");
-        assert_eq!(1, cnt);
+        ids.push(i+1);
     }
-    // there should be 1 survey
+    // there should be 11 survey
     let res:Vec<Survey> = storage.find_all(Survey::name(), 0);
-    assert_eq!(1, res.len())
+    assert_eq!(11, res.len());
+    assert_eq!(res[0].title, "Oct 2016 Survey");
     // find a survey
     // let survey = Survey::find(&storage, 1);
     // delete it
@@ -52,4 +53,11 @@ fn test_storage_provider() {
     // println!("{}", id);
     // let survey = storage.find_by_id("surveys", id);
     // #
+    for i in 0..ids.len() {
+        let cnt = storage.delete(Survey::name(), ids[i as usize]).expect("Failed");
+        assert_eq!(1, cnt);
+    }
+    let res:Vec<Survey> = storage.find_all(Survey::name(), 0);
+    assert_eq!(1, res.len());
+    assert_eq!(res[0].title, "Oct 2016 Survey");
 }

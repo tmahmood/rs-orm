@@ -46,23 +46,15 @@ impl Database {
         };
     }
 
-    pub fn select_all<T>(&self, obj:T, limit:usize) -> Option<Vec<T>> {
-        let mut sql;
+    pub fn select_all(&self, table:&str, limit:usize) -> Rows {
+        let mut sql: String;
         if limit != 0 {
             sql = format!("select * from {} limit by {}", table, limit);
         } else {
             sql = format!("select * from {}", table);
         }
-        let mut result:Vec<Row> = Vec::new();
         // prepare statement
-        let stmt = self.conn.prepare(&sql).unwrap();
-        println!("{:?}", stmt);
-        // execute query
-        let rows:Rows = stmt.query(&[]).unwrap();
-        for row in rows.iter() {
-            //result.push(row);
-        }
-        Some(result)
+        self.conn.query(&sql, &[]).unwrap()
     }
 
     pub fn delete(&self, table:&str, id:i32) -> Result<u64, Error> {
