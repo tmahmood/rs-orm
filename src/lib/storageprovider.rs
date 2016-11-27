@@ -38,7 +38,15 @@ impl StorageProvider {
         self.database.delete(name, id)
     }
 
-    pub fn find_all<'a, T:DataTraits<T>>(&self, name:&str, limit:usize) -> Vec<T> {
+    pub fn find<T:DataTraits<T>>(&self, name:&str, id:i32) -> T {
+        let mut rows:DataRows = self.database.select_by_id(name, id);
+        // should never be more than 1
+        assert!(rows.len() < 2);
+        let row = rows.iter().next().unwrap();
+        T::fill(&row)
+    }
+
+    pub fn find_all<T:DataTraits<T>>(&self, name:&str, limit:usize) -> Vec<T> {
         let mut data_rows:DataRows = self.database.select_all(name, limit);
         let mut list:Vec<T> = Vec::new();
         for row in data_rows.iter() {

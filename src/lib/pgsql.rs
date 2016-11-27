@@ -46,6 +46,12 @@ impl Database {
         };
     }
 
+    pub fn select_by_id(&self, table:&str, id:i32) -> Rows {
+        let mut sql: String;
+        sql = format!("select * from {} where id={}", table, id);
+        self.conn.query(&sql, &[]).unwrap()
+    }
+
     pub fn select_all(&self, table:&str, limit:usize) -> Rows {
         let mut sql: String;
         if limit != 0 {
@@ -53,14 +59,20 @@ impl Database {
         } else {
             sql = format!("select * from {}", table);
         }
-        // prepare statement
+        // Execute query
         self.conn.query(&sql, &[]).unwrap()
     }
 
+    pub fn select_matching(&self, table:&str, cols:&str, ){
+        vec![
+             "surveys"
+        ]
+
+    }
+
     pub fn delete(&self, table:&str, id:i32) -> Result<u64, Error> {
-        let sql = format!("delete from {} where id = $1", table);
-        let statement = self.statement(&sql);
-        statement.execute(&[&id])
+        let sql = format!("delete from {} where id = {}", table, id);
+        self.conn.execute(&sql, &[])
     }
 
     pub fn clear(&self, table:&str) -> Result<u64, Error>  {
@@ -84,7 +96,22 @@ impl Database {
 //
 // tables: t1, t2
 // columns: t1.*, t2.name, t3.cat
-// join t3 t1.id = t3.t1_id
+// join: t3 t1.id = t3.t1_id
 // where:
 
+pub struct Name {
+    pub label: String,
+    pub name: String
+}
+
+pub struct Join {
+    pub _table: String,
+    pub on: Vec<Condition>
+}
+
+pub struct QueryBuilder {
+    pub _tables: Vec<Name>,
+    pub _columns: Vec<Name>,
+    pub _join: Vec<Join>,
+}
 

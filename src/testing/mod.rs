@@ -1,11 +1,10 @@
-#[macro_use]
+#[allow(dead_code)]
+#[allow(unused_imports)]
 use lib::storageprovider::{StorageProvider, FieldType, DataTraits};
 use lib::pgsql::Database;
 use ::dotenv::dotenv;
 use ::std::env;
 use ::chrono::Local;
-
-
 use app::models::{Survey};
 
 #[test]
@@ -39,25 +38,31 @@ fn test_storage_provider() {
         ids.push(i+1);
     }
     // there should be 11 survey
-    let res:Vec<Survey> = storage.find_all(Survey::name(), 0);
-    assert_eq!(11, res.len());
-    assert_eq!(res[0].title, "Oct 2016 Survey");
-    // find a survey
-    // let survey = Survey::find(&storage, 1);
-    // delete it
-    // storage.delete(survey);
-    // add another one
-    // it should have an id
-    // finding data
-    // ----------------------------------------------
-    // println!("{}", id);
-    // let survey = storage.find_by_id("surveys", id);
-    // #
+    let all_surveys:Vec<Survey> = storage.find_all(Survey::name(), 0);
+    assert_eq!(11, all_surveys.len());
+    assert_eq!(all_surveys[0].title, "Oct 2016 Survey");
+    // now we delete by ids
     for i in 0..ids.len() {
-        let cnt = storage.delete(Survey::name(), ids[i as usize]).expect("Failed");
+        let cnt = storage.delete(Survey::name(), ids[i as usize])
+                         .expect("Failed");
         assert_eq!(1, cnt);
     }
-    let res:Vec<Survey> = storage.find_all(Survey::name(), 0);
-    assert_eq!(1, res.len());
-    assert_eq!(res[0].title, "Oct 2016 Survey");
+    // now select all again
+    let final_one:Vec<Survey> = storage.find_all(Survey::name(), 0);
+    // should be 1
+    assert_eq!(1, final_one.len());
+    // and it should be the first one we inserted outside of loop
+    assert_eq!(final_one[0].title, "Oct 2016 Survey");
+    // select one only
+    // find a survey
+    let first_one:Survey = storage.find(Survey::name(), 1);
+    assert_eq!(first_one.title, "Oct 2016 Survey");
+    assert_eq!(first_one.id, 1);
+    // delete it
+    let cnt = storage.delete(Survey::name(), first_one.id);
+    assert_eq!(cnt.unwrap(), 1);
+    // now select all again
+    let no_rows:Vec<Survey> = storage.find_all(Survey::name(), 0);
+    // should be 0
+    assert_eq!(0, no_rows.len());
 }

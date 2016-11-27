@@ -10,7 +10,7 @@ use std::env;
 mod lib;
 mod app;
 
-#[cfg( test )]
+#[cfg(test)]
 mod testing;
 
 fn main() {
