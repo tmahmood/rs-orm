@@ -19,12 +19,10 @@ fn test_storage_provider() {
     // inserting data
     // ----------------------------------------------
     assert_eq!("surveys", Survey::name());
-    let mut survey = Survey {
-                        id: 0, title: format!("Oct 2016 Survey"),
-                        duration: 8, start_date: Local::now().timestamp(),
-                        active: true, };
+    let mut survey = Survey::new(
+                        format!("Oct 2016 Survey"), 8,
+                        Local::now().timestamp(), true);
     // save it!
-    // survey.insert(&storage);
     storage.insert(&mut survey);
     assert!(survey.id == 1);
     let mut ids = Vec::new();
@@ -53,11 +51,21 @@ fn test_storage_provider() {
     assert_eq!(1, final_one.len());
     // and it should be the first one we inserted outside of loop
     assert_eq!(final_one[0].title, "Oct 2016 Survey");
-    // select one only
-    // find a survey
-    let first_one:Survey = storage.find(Survey::name(), 1);
-    assert_eq!(first_one.title, "Oct 2016 Survey");
-    assert_eq!(first_one.id, 1);
+    {
+        // select one only
+        // find a survey
+        let mut first_one:Survey = storage.find(Survey::name(), 1);
+        assert_eq!(first_one.title, "Oct 2016 Survey");
+        assert_eq!(first_one.id, 1);
+        // TODO: update it
+        first_one.title(String::from("Nov 2016 Survey"))
+                 .active(true);
+        let r = storage.update(&first_one);
+        assert_eq!(1, r);
+    }
+    // load it again
+    let mut first_one:Survey = storage.find(Survey::name(), 1);
+    assert_eq!(first_one.title, "Nov 2015 Survey");
     // delete it
     let cnt = storage.delete(Survey::name(), first_one.id);
     assert_eq!(cnt.unwrap(), 1);

@@ -21,21 +21,11 @@ impl Database {
         }
     }
 
-    pub fn insert(&self, table:&str, cols:String, data: &[&ColumnType]) -> i32{
-        let mut i = 0;
-        // postgres driver uses $1..$n to bind variables,
-        // we make the binding string here, there must be
-        // a better way to do it?
-        let placeholders:Vec<String> = data.iter()
-            .map(|&_| { i += 1; format!("${}", i) })
-            .collect();
-        // build the query string
-        let sql = format!("insert into {} ({}) values({}) returning id",
-                table, cols, placeholders.join(", "));
+    pub fn do_statement(&self, sql: &str, data: &[&ColumnType]) -> i32 {
         // prepare statement
         let stmt = self.conn.prepare(&sql).unwrap();
         // execute query
-        return match stmt.query(data) {
+        let r = match stmt.query(data) {
             Ok(rows) => {
                 let row = rows.iter().next().unwrap();
                 row.get(0)
@@ -44,6 +34,33 @@ impl Database {
                 0
             }
         };
+        r
+    }
+
+    pub fn insert(&self, table:&str, cols:String, data: &[&ColumnType]) -> i32 {
+        // postgres driver uses $1..$n to bind variables,
+        // we make the binding string here, there must be
+        // a better way to do it?
+        // TODO: Find a better way to generate placeholder string
+        let mut i = 0;
+        let placeholders:Vec<String> = data.iter()
+            .map(|&_| { i += 1; format!("${}", i) })
+            .collect();
+        // build the query string
+        let sql = format!("insert into {} ({}) values({}) returning id",
+                table, cols, placeholders.join(", "));
+        self.do_statement(&sql, data)
+    }
+
+    pub fn update(&self, table:&str, cols:Vec<String>, id:i32, data:&[&ColumnType]) -> i32 {
+        let mut i = 0;
+        let placeholders:Vec<String> = cols.iter()
+            .map(|ref c| { i += 1; format!("{} = ${}", c, i) })
+            .collect();
+        let sql = format!("update {} set {} where id = {}", table,
+                            &placeholders.join(", "), id);
+        // execute query
+        self.do_statement(&sql, data)
     }
 
     pub fn select_by_id(&self, table:&str, id:i32) -> Rows {
@@ -61,13 +78,6 @@ impl Database {
         }
         // Execute query
         self.conn.query(&sql, &[]).unwrap()
-    }
-
-    pub fn select_matching(&self, table:&str, cols:&str, ){
-        vec![
-             "surveys"
-        ]
-
     }
 
     pub fn delete(&self, table:&str, id:i32) -> Result<u64, Error> {
@@ -99,19 +109,19 @@ impl Database {
 // join: t3 t1.id = t3.t1_id
 // where:
 
-pub struct Name {
-    pub label: String,
-    pub name: String
-}
-
-pub struct Join {
-    pub _table: String,
-    pub on: Vec<Condition>
-}
-
-pub struct QueryBuilder {
-    pub _tables: Vec<Name>,
-    pub _columns: Vec<Name>,
-    pub _join: Vec<Join>,
-}
-
+// pub struct Name {
+//     pub label: String,
+//     pub name: String
+// }
+//
+// pub struct Join {
+//     pub _table: String,
+//     pub on: Vec<Condition>
+// }
+//
+// pub struct QueryBuilder {
+//     pub _tables: Vec<Name>,
+//     pub _columns: Vec<Name>,
+//     pub _join: Vec<Join>,
+// }
+//
