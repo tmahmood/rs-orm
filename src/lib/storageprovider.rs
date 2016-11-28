@@ -40,11 +40,11 @@ impl StorageProvider {
 
     pub fn update<T:DataTraits<T>>(&self, obj:&T) -> i32 {
         let changes = obj.changed_data();
-        let cols:Vec<String> = Vec::new();
-        let data:Vec<&FieldType> = Vec::new();
+        let mut cols:Vec<String> = Vec::new();
+        let mut data:Vec<&FieldType> = Vec::new();
         for (col, change) in &changes {
-            cols.push(col);
-            data.push(change);
+            cols.push(col.clone());
+            data.push(*change);
         }
         self.database.update(T::name(), cols, obj.get_id(), &data)
     }
@@ -135,13 +135,13 @@ macro_rules! model {
             }
 
             fn changed_data(&self) -> HashMap<String, &FieldType> {
-                let mut lst:HashMap<String, &FieldType> = Vec::new();
-                $(
-                    let cname = stringify!($fname);
-                    if self.changed.contains(cname) {
-                        lst[String::from(cname)] = &self.$fname;
+                let mut lst:HashMap<String, &FieldType> = HashMap::new();
+                $({
+                    let cname = String::from(stringify!($fname));
+                    if self.changed.contains(&cname) {
+                        lst.insert(cname, &self.$fname);
                     }
-                )*
+                })*
                 lst
             }
 
