@@ -14,6 +14,8 @@ pub struct Database {
 
 impl Database {
 
+    // #connect to database
+    // connect to database using given connection string
     pub fn new(dsn:&str) -> Database {
         match Connection::connect(dsn, TlsMode::None) {
             Ok(conn) => Database{conn: conn},
@@ -21,8 +23,11 @@ impl Database {
         }
     }
 
+    // # insertion
+    // generate Insert SQL insert the given data
+    // @data is reference of slice containing all the data
     pub fn insert(&self, table:&str, cols:String, data: &[&ColumnType]) -> i32 {
-        // postgres driver uses $1..$n to bind variables,
+        // NOTE: postgres driver uses $1..$n to bind variables,
         // we make the binding string here, there must be
         // a better way to do it?
         // TODO: Find a better way to generate placeholder string
@@ -30,18 +35,21 @@ impl Database {
         let placeholders:Vec<String> = data.iter()
             .map(|&_| { i += 1; format!("${}", i) })
             .collect();
-        // build the query string
+        // build the query string, join method seems faster than
+        // string concat
         let sql = format!("insert into {} ({}) values({}) returning id",
                 table, cols, placeholders.join(", "));
         // prepare statement
         let stmt = self.conn.prepare(&sql).unwrap();
         // execute query
+        // insert query in postgres returns the insert id
+        // which we like to have, so check and return
         let r = match stmt.query(data) {
             Ok(rows) => {
                 let row = rows.iter().next().unwrap();
                 row.get(0)
             }, Err(e) => {
-                println!("{:?}", e);
+                println!("Error Inserting: {:?}", e);
                 0
             }
         };
@@ -58,11 +66,10 @@ impl Database {
                             &placeholders.join(", "), id);
         // Execute query
         let stmt = self.conn.prepare(&sql).unwrap();
-        let r = match stmt.query(data) {
+        match stmt.query(data) {
             Ok(rows) => { true },
             Err(e) => { false }
-        };
-        r
+        }
     }
 
     pub fn select_by_id(&self, table:&str, id:i32) -> Rows {
