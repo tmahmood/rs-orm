@@ -8,10 +8,10 @@ pub type DatabaseError = Error;
 pub type ColumnType = ToSql;
 pub type DataRows<'a> = Rows<'a>;
 pub type DataRow<'a> = Row<'a>;
+
 pub struct Database {
     pub conn: Connection,
 }
-
 impl Database {
 
     // #connect to database
@@ -23,7 +23,11 @@ impl Database {
         }
     }
 
-    // # insertion
+    pub fn exec_direct(&self, sql:&str) -> Result<u64, Error> {
+        self.conn.execute(&sql, &[])
+    }
+
+    // Insertion
     // generate Insert SQL insert the given data
     // @data is reference of slice containing all the data
     pub fn insert(&self, table:&str, cols:String, data: &[&ColumnType]) -> i32 {
@@ -66,10 +70,14 @@ impl Database {
                             &placeholders.join(", "), id);
         // Execute query
         let stmt = self.conn.prepare(&sql).unwrap();
-        match stmt.query(data) {
+        let r = match stmt.query(data) {
             Ok(rows) => { true },
-            Err(e) => { false }
-        }
+            Err(e) => {
+                println!("Error Inserting: {:?}", e);
+                false
+            }
+        };
+        r
     }
 
     pub fn select_by_id(&self, table:&str, id:i32) -> Rows {
@@ -81,10 +89,11 @@ impl Database {
     pub fn select_all(&self, table:&str, limit:usize) -> Rows {
         let mut sql: String;
         if limit != 0 {
-            sql = format!("select * from {} limit by {}", table, limit);
+            sql = format!("select * from {} limit {}", table, limit);
         } else {
             sql = format!("select * from {}", table);
         }
+        println!("{}", sql);
         // Execute query
         self.conn.query(&sql, &[]).unwrap()
     }

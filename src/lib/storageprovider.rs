@@ -25,13 +25,21 @@ impl StorageProvider {
         StorageProvider{ database: database }
     }
 
-    pub fn insert<T:DataTraits<T>>(&self, obj:&mut T) {
+    pub fn exec(&self, sql:&str) -> Result<u64, DatabaseError>{
+        self.database.exec_direct(sql)
+    }
+
+    pub fn insert<T:DataTraits<T>>(&self, obj:&mut T) -> bool {
         let id;
         {
             let v = obj.data();
             id = self.database.insert(T::name(), T::columns_as_csv(), &v);
         }
+        if id == 0 {
+            return false;
+        }
         obj.set_id(id);
+        true
     }
 
     pub fn clear(&self, table:&str) -> Result<u64, DatabaseError> {
@@ -159,4 +167,5 @@ macro_rules! model {
         }
     }
 }
+
 
