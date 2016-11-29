@@ -21,7 +21,18 @@ impl Database {
         }
     }
 
-    pub fn do_statement(&self, sql: &str, data: &[&ColumnType]) -> i32 {
+    pub fn insert(&self, table:&str, cols:String, data: &[&ColumnType]) -> i32 {
+        // postgres driver uses $1..$n to bind variables,
+        // we make the binding string here, there must be
+        // a better way to do it?
+        // TODO: Find a better way to generate placeholder string
+        let mut i = 0;
+        let placeholders:Vec<String> = data.iter()
+            .map(|&_| { i += 1; format!("${}", i) })
+            .collect();
+        // build the query string
+        let sql = format!("insert into {} ({}) values({}) returning id",
+                table, cols, placeholders.join(", "));
         // prepare statement
         let stmt = self.conn.prepare(&sql).unwrap();
         // execute query
@@ -37,30 +48,21 @@ impl Database {
         r
     }
 
-    pub fn insert(&self, table:&str, cols:String, data: &[&ColumnType]) -> i32 {
-        // postgres driver uses $1..$n to bind variables,
-        // we make the binding string here, there must be
-        // a better way to do it?
-        // TODO: Find a better way to generate placeholder string
-        let mut i = 0;
-        let placeholders:Vec<String> = data.iter()
-            .map(|&_| { i += 1; format!("${}", i) })
-            .collect();
-        // build the query string
-        let sql = format!("insert into {} ({}) values({}) returning id",
-                table, cols, placeholders.join(", "));
-        self.do_statement(&sql, data)
-    }
-
-    pub fn update(&self, table:&str, cols:Vec<String>, id:i32, data:&[&ColumnType]) -> i32 {
+    pub fn update(&self, table:&str, cols:Vec<String>, id:i32, data:&[&ColumnType])
+            -> bool {
         let mut i = 0;
         let placeholders:Vec<String> = cols.iter()
             .map(|ref c| { i += 1; format!("{} = ${}", c, i) })
             .collect();
         let sql = format!("update {} set {} where id = {}", table,
                             &placeholders.join(", "), id);
-        // execute query
-        self.do_statement(&sql, data)
+        // Execute query
+        let stmt = self.conn.prepare(&sql).unwrap();
+        let r = match stmt.query(data) {
+            Ok(rows) => { true },
+            Err(e) => { false }
+        };
+        r
     }
 
     pub fn select_by_id(&self, table:&str, id:i32) -> Rows {

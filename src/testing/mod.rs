@@ -60,12 +60,11 @@ fn test_storage_provider() {
         // TODO: update it
         first_one.title(String::from("Nov 2016 Survey"))
                  .active(true);
-        let r = storage.update(&first_one);
-        assert_eq!(1, r);
+        assert_eq!(true, storage.update(&first_one));
     }
     // load it again
-    let mut first_one:Survey = storage.find(Survey::name(), 1);
-    assert_eq!(first_one.title, "Nov 2015 Survey");
+    let first_one:Survey = storage.find(Survey::name(), 1);
+    assert_eq!(first_one.title, "Nov 2016 Survey");
     // delete it
     let cnt = storage.delete(Survey::name(), first_one.id);
     assert_eq!(cnt.unwrap(), 1);

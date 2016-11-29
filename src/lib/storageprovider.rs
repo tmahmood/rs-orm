@@ -38,7 +38,7 @@ impl StorageProvider {
         self.database.clear(table)
     }
 
-    pub fn update<T:DataTraits<T>>(&self, obj:&T) -> i32 {
+    pub fn update<T:DataTraits<T>>(&self, obj:&T) -> bool {
         let changes = obj.changed_data();
         let mut cols:Vec<String> = Vec::new();
         let mut data:Vec<&FieldType> = Vec::new();
