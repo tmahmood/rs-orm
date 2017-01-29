@@ -4,6 +4,10 @@ A ORM system for Rust with support for Postgres, MySQL, SQLite. [WIP]
 
 NOTE: It's not meant to be anything serious, [Diesel](http://diesel.rs/guides/getting-started/) is way to go if you want something real. This was just a fun project. 
 
+Here's a example code, how it supposed to work:
+
+# Defining Models
+
 ```rust
     model!( struct Survey {
                     title: String,
@@ -17,8 +21,7 @@ NOTE: It's not meant to be anything serious, [Diesel](http://diesel.rs/guides/ge
                 }, "questionsets");
 ```
 
-Here's a example code, how it supposed to work:
-
+# Connecting and Creating
 ```rust
     let storage = connect();
     // clean table
@@ -34,8 +37,7 @@ Here's a example code, how it supposed to work:
     assert!(survey.id > 0);
 ```
 
-Loading and updating:
-
+# Loading and updating
 ```rust
     // loading, check if all value matches
     let mut new_one:Survey = storage.find(Survey::name(), survey.id);
